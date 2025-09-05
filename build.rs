@@ -49,5 +49,5 @@ fn main() {
         rule_registrations.join("\n                 ")
     );
 
-    fs::write(&destination, generated_code).unwrap();
+    fs::write(destination, generated_code).unwrap();
 }
