@@ -1,30 +1,46 @@
-on: [push]
+name: Continuous Integration
 
-name: CI
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "README.md"
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
 
-permissions:
-  contents: read
+# This cancels older, in-progress runs on the same branch for pull requests.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 env:
-  MSRV_FEATURES: "--all-features"
+  CARGO_TERM_COLOR: always
 
 jobs:
-  crate_metadata:
-    name: Extract crate metadata
+  # New job: Check for spelling mistakes
+  typos:
+    name: Check for Typos
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust (stable) for cargo metadata
-        uses: dtolnay/rust-toolchain@stable
-      - name: Extract crate information
-        id: crate_metadata
-        run: |
-          cargo metadata --no-deps --format-version 1 \
-          | jq -r '"msrv=" + .packages[0].rust_version' \
-          | tee -a "$GITHUB_OUTPUT"
-    outputs:
-      msrv: ${{ steps.crate_metadata.outputs.msrv }}
+      - uses: crate-ci/typos@master
 
+  # New job: Check for unused dependencies
+  cargo-shear:
+    name: Check for Unused Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-shear
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-shear
+      - name: Run cargo-shear
+        run: cargo shear
+
+  # This job remains mostly the same, but now runs in parallel with others
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -39,6 +55,7 @@ jobs:
       - name: Run cargo clippy
         run: cargo clippy -- -D warnings
 
+  # This job is now faster thanks to the `mold` linker on Linux
   build_and_test:
     name: Build and Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -47,7 +64,12 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      # Use the mold linker for faster builds on Linux
+      - name: Install mold linker (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        uses: rui314/setup-mold@v1
       - uses: Swatinem/rust-cache@v2
       - name: Install nextest
         uses: taiki-e/install-action@v2
@@ -56,23 +78,40 @@ jobs:
       - name: Build and test
         run: cargo nextest run --workspace --all-features
 
-  msrv:
+  # This job extracts the MSRV and is a dependency for the msrv-check job
+  crate_metadata:
+    name: Extract crate metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust (stable) for cargo metadata
+        uses: dtolnay/rust-toolchain@stable
+      - name: Extract crate information
+        id: crate_metadata
+        run: |
+          # This requires `jq` to be installed on the runner, which it is by default
+          cargo metadata --no-deps --format-version 1 \
+          | jq -r '"msrv=" + .packages[0].rust_version' \
+          | tee -a "$GITHUB_OUTPUT"
+    outputs:
+      msrv: ${{ steps.crate_metadata.outputs.msrv }}
+
+  # This job ensures your code works on the oldest Rust version you support
+  msrv-check:
     name: Check MSRV
     needs: crate_metadata
     if: ${{ needs.crate_metadata.outputs.msrv != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Install rustup via stable so we can install a dynamic toolchain
       - uses: dtolnay/rust-toolchain@stable
       - name: Install MSRV toolchain
         run: |
           MSRV="${{ needs.crate_metadata.outputs.msrv }}"
           rustup toolchain install "$MSRV" --profile minimal
           rustup component add --toolchain "$MSRV" clippy rustfmt || true
-          rustup default "$MSRV"
       - uses: Swatinem/rust-cache@v2
       - name: Build (MSRV)
-        run: cargo build --workspace --all-features
+        run: cargo +${{ needs.crate_metadata.outputs.msrv }} build --workspace --all-features
       - name: Clippy (MSRV)
-        run: cargo clippy --workspace --all-features -- -D warnings
+        run: cargo +${{ needs.crate_metadata.outputs.msrv }} clippy --workspace --all-features -- -D warnings
