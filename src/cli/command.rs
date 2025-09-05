@@ -52,7 +52,7 @@ impl fmt::Display for CrabCommand {
     }
 }
 
-fn concat_stdout_stderrr(stdout: Option<String>, stderr: Option<String>) -> Option<String> {
+fn concat_stdout_stderr(stdout: Option<String>, stderr: Option<String>) -> Option<String> {
     match (stdout, stderr) {
         (Some(stdout), Some(stderr)) => Some({
             if !stderr.is_empty() && !stdout.is_empty() {
@@ -72,7 +72,7 @@ fn concat_stdout_stderrr(stdout: Option<String>, stderr: Option<String>) -> Opti
 impl CrabCommand {
     pub fn new(script: String, stdout: Option<String>, stderr: Option<String>) -> Self {
         let split_parts = CrabCommand::split_command(&script);
-        let output = concat_stdout_stderrr(stdout, stderr);
+        let output = concat_stdout_stderr(stdout, stderr);
 
         CrabCommand {
             script,
@@ -87,7 +87,7 @@ impl CrabCommand {
         stdout: Option<String>,
         stderr: Option<String>,
     ) -> CrabCommand {
-        let output = concat_stdout_stderrr(stdout, stderr);
+        let output = concat_stdout_stderr(stdout, stderr);
 
         CrabCommand::new(
             script.unwrap_or(self.script.to_owned()),
