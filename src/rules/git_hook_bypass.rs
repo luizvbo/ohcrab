@@ -50,7 +50,7 @@ pub fn get_rule() -> Rule {
         None,
         Some(1100),
         Some(false),
-        match_rule,
+        Box::new(match_rule),
         get_new_command,
         None,
     )

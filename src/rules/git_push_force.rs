@@ -48,7 +48,7 @@ pub fn get_rule() -> Rule {
         Some(false),
         None,
         None,
-        match_rule,
+        Box::new(match_rule),
         get_new_command,
         None,
     )
