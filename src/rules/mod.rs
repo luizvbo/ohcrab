@@ -123,6 +123,7 @@ mod rm_dir;
 mod sudo;
 mod sudo_command_from_user_path;
 mod tmux;
+mod touch;
 mod unsudo;
 
 mod utils;
