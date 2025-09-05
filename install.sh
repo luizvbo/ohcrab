@@ -8,7 +8,7 @@
 set -e
 
 # Define repository and binary name
-REPO="luizvbo/oh-crab"
+REPO="luizvbo/ohcrab"
 BINARY_NAME="ohcrab"
 
 # Determine the Operating System and Architecture
