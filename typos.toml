@@ -1,10 +1,12 @@
 [default.extend-words]
-buld = "buld"
-udpate = "udpate"
-goood = "goood"
+Sie = "Sie"
 buid = "buid"
 buils = "buils"
-Sie = "Sie"
-sie = "sie"
-fo = "fo"
+buld = "buld"
+comit = 'comit'
 evn = "evn"
+fo = "fo"
+goood = "goood"
+gti = 'gti'
+sie = "sie"
+udpate = "udpate"
