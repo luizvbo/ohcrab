@@ -6,26 +6,29 @@ use walkdir::WalkDir;
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let destination = Path::new(&out_dir).join("rules.rs");
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
 
     let mut rule_mods = Vec::new();
     let mut rule_registrations = Vec::new();
 
     println!("cargo:rerun-if-changed=src/rules");
 
-    for entry in WalkDir::new("src/rules").into_iter().filter_map(|e| e.ok()) {
+    // This loop now only looks at files directly inside `src/rules`
+    for entry in WalkDir::new("src/rules")
+        .min_depth(1) // Skip the `src/rules` directory itself
+        .max_depth(1) // Do not go into subdirectories
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
         let path = entry.path();
         if path.is_file() {
             if let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) {
-                // Adjust this list to ignore any non-rule files in the directory
-                if file_stem != "mod" && file_stem != "utils" && file_stem != "parameterized_tests"
-                {
-                    println!("cargo:rerun-if-changed={}", path.display());
+                if file_stem != "mod" {
+                    let absolute_path = Path::new(&manifest_dir).join(path);
+                    let path_str = absolute_path.to_str().unwrap().replace('\\', "/");
 
-                    // Generate: mod my_rule;
-                    rule_mods.push(format!("mod {};", file_stem));
-
-                    // Generate: my_rule::get_rule(),
-                    rule_registrations.push(format!("{}::get_rule(),", file_stem));
+                    rule_mods.push(format!("#[path = \"{path_str}\"]\nmod {file_stem};"));
+                    rule_registrations.push(format!("{file_stem}::get_rule(),"));
                 }
             }
         }
@@ -46,5 +49,5 @@ fn main() {
         rule_registrations.join("\n                 ")
     );
 
-    fs::write(&destination, generated_code).unwrap();
+    fs::write(destination, generated_code).unwrap();
 }

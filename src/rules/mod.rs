@@ -1,6 +1,6 @@
+use crate::cli::{command::CorrectedCommand, command::CrabCommand};
 use crate::shell::Shell;
 use core::fmt;
-use crate::cli::{command::CorrectedCommand, command::CrabCommand};
 
 // Publicly re-export the utils module so other rules can use it
 pub mod utils;
