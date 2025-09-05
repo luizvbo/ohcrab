@@ -1,9 +1,7 @@
-use crate::cli::{command::CorrectedCommand, command::CrabCommand};
 use crate::shell::Shell;
 use core::fmt;
 
-// Publicly re-export the utils module so other rules can use it
-pub mod utils;
+use crate::cli::{command::CorrectedCommand, command::CrabCommand};
 
 mod ag_literal;
 mod apt_get;
@@ -149,7 +147,7 @@ impl fmt::Display for Rule {
 }
 
 impl Rule {
-    pub fn new(
+    fn new(
         name: String,
         enabled_by_default: Option<bool>,
         priority: Option<u16>,
@@ -167,6 +165,18 @@ impl Rule {
             get_new_command,
             side_effect,
         }
+    }
+
+    // Returns `True` if rule matches the command.
+    fn is_match(&self, mut command: CrabCommand, system_shell: &dyn Shell) -> bool {
+        let script_only = command.output.is_none();
+        if script_only && self.requires_output {
+            return false;
+        }
+        if (self.match_rule)(&mut command, Some(system_shell)) {
+            return true;
+        }
+        false
     }
 
     fn get_corrected_commands(
@@ -187,33 +197,6 @@ impl Rule {
         }
         new_commands
     }
-}
-
-// This single line will bring in all `mod` declarations and the `get_rules()` function.
-// The compiler will correctly resolve `mod cp_create_destination;` to the file
-// `src/rules/cp_create_destination.rs`.
-include!(concat!(env!("OUT_DIR"), "/rules.rs"));
-
-// The rest of the functions remain here.
-pub fn get_corrected_commands(
-    command: &mut CrabCommand,
-    system_shell: &dyn Shell,
-) -> Vec<CorrectedCommand> {
-    let mut corrected_commands: Vec<CorrectedCommand> = vec![];
-    for rule in get_rules() {
-        if (rule.match_rule)(command, Some(system_shell)) {
-            for corrected in rule.get_corrected_commands(command, system_shell) {
-                corrected_commands.push(corrected);
-            }
-        }
-    }
-    organize_commands(corrected_commands)
-}
-
-pub fn organize_commands(mut corrected_commands: Vec<CorrectedCommand>) -> Vec<CorrectedCommand> {
-    corrected_commands.sort_by(|a, b| a.priority.cmp(&b.priority));
-    corrected_commands.dedup_by(|a, b| a.script.eq(&b.script));
-    corrected_commands
 }
 
 pub fn match_rule_without_sudo<F>(match_function: F, command: &mut CrabCommand) -> bool
@@ -242,4 +225,37 @@ pub fn get_new_command_without_sudo(
             .map(|cmd| "sudo ".to_owned() + cmd)
             .collect()
     }
+}
+
+/// Generate a list of corrected commands for the given CrabCommand.
+///
+/// This function takes a `CrabCommand` as input and iterates through the registered
+/// rules, applying each rule's match condition. The list of matching commands is then
+/// reorganized and returned.
+///
+/// * `command`: A `CrabCommand` for which to generate corrected commands.
+///
+/// # Returns
+///
+/// A `Vec<CorrectedCommand>` containing the list of corrected commands based on the
+/// input `CrabCommand`.
+pub fn get_corrected_commands(
+    command: &mut CrabCommand,
+    system_shell: &dyn Shell,
+) -> Vec<CorrectedCommand> {
+    let mut corrected_commands: Vec<CorrectedCommand> = vec![];
+    for rule in get_rules() {
+        if (rule.match_rule)(command, Some(system_shell)) {
+            for corrected in rule.get_corrected_commands(command, system_shell) {
+                corrected_commands.push(corrected);
+            }
+        }
+    }
+    organize_commands(corrected_commands)
+}
+
+pub fn organize_commands(mut corrected_commands: Vec<CorrectedCommand>) -> Vec<CorrectedCommand> {
+    corrected_commands.sort_by(|a, b| a.priority.cmp(&b.priority));
+    corrected_commands.dedup_by(|a, b| a.script.eq(&b.script));
+    corrected_commands
 }
