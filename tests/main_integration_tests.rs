@@ -1,8 +1,5 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
-use std::fs::File;
-use std::io::Write;
-use tempfile::Builder;
 
 #[test]
 fn test_alias_generation() {
@@ -82,22 +79,22 @@ fn test_executable_typo_correction() {
 /// The corrected command should first create the directory and then execute the original command.
 #[test]
 fn test_command_creating_directory() {
-    // Setup a temporary directory and a file to copy
-    let temp_dir = Builder::new().prefix("ohcrab_test").tempdir().unwrap();
+    // Setup a temporary directory for the test
+    let temp_dir = tempfile::tempdir().unwrap();
     let file_path = temp_dir.path().join("file.txt");
-    let mut file = File::create(&file_path).unwrap();
-    writeln!(file, "hello").unwrap();
+    std::fs::write(&file_path, "content").unwrap();
 
     let mut cmd = Command::cargo_bin("ohcrab").unwrap();
     cmd.current_dir(temp_dir.path())
         .arg("--select-first")
+        .arg("--debug") // Keep debug for useful output if it fails
         .arg("--")
         .arg("cp")
         .arg("file.txt")
         .arg("non_existent_dir/file.txt")
         .assert()
         .success()
-        // Assert that the suggested command includes `mkdir -p`
+        // This is the corrected assertion:
         .stdout(predicate::str::contains(
             "mkdir -p non_existent_dir && cp file.txt non_existent_dir/file.txt",
         ));

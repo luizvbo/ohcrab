@@ -106,7 +106,6 @@ mod mvn_no_command;
 mod mvn_unknown_lifecycle_phase;
 mod nixos_cmd_not_found;
 mod no_command;
-mod no_such_file;
 mod npm_missing_script;
 mod npm_run_script;
 mod php_s;
@@ -232,7 +231,6 @@ pub fn get_rules() -> Vec<Rule> {
         mvn_unknown_lifecycle_phase::get_rule(),
         nixos_cmd_not_found::get_rule(),
         no_command::get_rule(),
-        no_such_file::get_rule(),
         npm_missing_script::get_rule(),
         npm_run_script::get_rule(),
         php_s::get_rule(),
