@@ -113,9 +113,7 @@ mod tests {
         #[case] expected: bool,
     ) {
         let stdout = if !target.is_empty() {
-            format!(
-                "error: pathspec '{target}' did not match any file(s) known to git."
-            )
+            format!("error: pathspec '{target}' did not match any file(s) known to git.")
         } else {
             "".to_string()
         };
@@ -141,9 +139,7 @@ mod tests {
         "git add -- 'file with spaces.txt' && git commit \"file with spaces.txt\""
     )]
     fn test_get_new_command(#[case] script: &str, #[case] target: &str, #[case] expected: &str) {
-        let stdout = format!(
-            "error: pathspec '{target}' did not match any file(s) known to git."
-        );
+        let stdout = format!("error: pathspec '{target}' did not match any file(s) known to git.");
         let system_shell = Bash {};
         let command = CrabCommand::new(script.to_owned(), Some(stdout), None);
 
