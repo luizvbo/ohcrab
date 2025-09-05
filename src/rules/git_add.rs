@@ -65,7 +65,7 @@ fn mockable_get_new_command(
     let quoter = Quoter::new();
     let quoted_missing_file = quoter.quote(&missing_file).unwrap_or_default();
 
-    let str_git_add = format!("git add -- {}", quoted_missing_file);
+    let str_git_add = format!("git add -- {quoted_missing_file}");
     vec![system_shell
         .unwrap()
         .and(vec![&str_git_add, &command.script])]
@@ -114,8 +114,7 @@ mod tests {
     ) {
         let stdout = if !target.is_empty() {
             format!(
-                "error: pathspec '{}' did not match any file(s) known to git.",
-                target
+                "error: pathspec '{target}' did not match any file(s) known to git."
             )
         } else {
             "".to_string()
@@ -143,8 +142,7 @@ mod tests {
     )]
     fn test_get_new_command(#[case] script: &str, #[case] target: &str, #[case] expected: &str) {
         let stdout = format!(
-            "error: pathspec '{}' did not match any file(s) known to git.",
-            target
+            "error: pathspec '{target}' did not match any file(s) known to git."
         );
         let system_shell = Bash {};
         let command = CrabCommand::new(script.to_owned(), Some(stdout), None);

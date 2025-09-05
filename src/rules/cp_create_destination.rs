@@ -31,7 +31,7 @@ pub fn get_new_command(command: &mut CrabCommand, system_shell: Option<&dyn Shel
             if !dir_str.is_empty() {
                 return vec![system_shell
                     .unwrap()
-                    .and(vec![&format!("mkdir -p {}", dir_str), &command.script])];
+                    .and(vec![&format!("mkdir -p {dir_str}"), &command.script])];
             }
         }
     }
