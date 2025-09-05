@@ -1,5 +1,6 @@
 use super::{utils::match_rule_with_is_app, Rule};
 use crate::{cli::command::CrabCommand, shell::Shell};
+use std::path::Path;
 
 pub fn auxiliary_match_rule(command: &CrabCommand) -> bool {
     if let Some(output) = &command.output {
@@ -17,10 +18,24 @@ pub fn match_rule(command: &mut CrabCommand, system_shell: Option<&dyn Shell>) -
 }
 
 pub fn get_new_command(command: &mut CrabCommand, system_shell: Option<&dyn Shell>) -> Vec<String> {
-    vec![system_shell.unwrap().and(vec![
-        &format!("mkdir -p {}", command.script_parts.last().unwrap()),
-        &command.script,
-    ])]
+    if let Some(dest_path_str) = command.script_parts.last() {
+        let dir_to_create = if dest_path_str.ends_with('/') || dest_path_str.ends_with('\\') {
+            // Case 1: Destination is a directory, like `bar/qux/`.
+            Some(dest_path_str.trim_end_matches(['/', '\\']))
+        } else {
+            // Case 2: Destination is a file, like `bar/qux/file.txt`.
+            Path::new(dest_path_str).parent().and_then(|p| p.to_str())
+        };
+
+        if let Some(dir_str) = dir_to_create {
+            if !dir_str.is_empty() {
+                return vec![system_shell
+                    .unwrap()
+                    .and(vec![&format!("mkdir -p {}", dir_str), &command.script])];
+            }
+        }
+    }
+    vec![]
 }
 
 pub fn get_rule() -> Rule {
@@ -55,19 +70,14 @@ mod tests {
 
     #[rstest]
     #[case(
-        "cp foo bar/",
-        "cp: directory foo does not exist\n",
-        "mkdir -p bar/ && cp foo bar/"
+        "cp foo bar/baz",
+        "cp: bar/baz: No such file or directory",
+        "mkdir -p bar && cp foo bar/baz"
     )]
     #[case(
-        "mv foo bar/",
-        "No such file or directory",
-        "mkdir -p bar/ && mv foo bar/"
-    )]
-    #[case(
-        "cp foo bar/baz/",
-        "cp: directory foo does not exist\n",
-        "mkdir -p bar/baz/ && cp foo bar/baz/"
+        "mv foo bar/qux/",
+        "mv: bar/qux/: No such file or directory",
+        "mkdir -p bar/qux && mv foo bar/qux/"
     )]
     fn test_get_new_command(#[case] script: &str, #[case] output: &str, #[case] expected: &str) {
         let system_shell = Bash {};
