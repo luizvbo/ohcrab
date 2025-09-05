@@ -120,7 +120,7 @@ mod tests {
     use tempfile::TempDir;
 
     pub fn tar_error(filename: &str, tmp_dir: &TempDir) {
-        let filename = format!("./{}", filename);
+        let filename = format!("./{filename}");
         let path = tmp_dir.path().join(&filename);
 
         let _ = env::set_current_dir(tmp_dir.path());
@@ -179,14 +179,14 @@ mod tests {
     )> {
         vec![
             (
-                Box::new(|s: &str| format!("foo{}", s)),
-                Box::new(|s: &str| format!("foo{}", s)),
-                Box::new(|s: &str| format!("foo{}", s)),
+                Box::new(|s: &str| format!("foo{s}")),
+                Box::new(|s: &str| format!("foo{s}")),
+                Box::new(|s: &str| format!("foo{s}")),
             ),
             (
-                Box::new(|s: &str| format!(r#""foo bar{}""#, s)),
-                Box::new(|s: &str| format!("foo bar{}", s)),
-                Box::new(|s: &str| format!("'foo bar{}'", s)),
+                Box::new(|s: &str| format!(r#""foo bar{s}""#)),
+                Box::new(|s: &str| format!("foo bar{s}")),
+                Box::new(|s: &str| format!("'foo bar{s}'")),
             ),
         ]
     }
@@ -197,32 +197,26 @@ mod tests {
     )> {
         vec![
             (
-                Box::new(|s: &str| format!("tar xvf {}", s)),
+                Box::new(|s: &str| format!("tar xvf {s}")),
                 Box::new(|dir: &str, filename: &str| {
                     format!(
-                        "mkdir -p {dir} && tar xvf {filename} -C {dir}",
-                        dir = dir,
-                        filename = filename
+                        "mkdir -p {dir} && tar xvf {filename} -C {dir}"
                     )
                 }),
             ),
             (
-                Box::new(|s: &str| format!("tar -xvf {}", s)),
+                Box::new(|s: &str| format!("tar -xvf {s}")),
                 Box::new(|dir: &str, filename: &str| {
                     format!(
-                        "mkdir -p {dir} && tar -xvf {filename} -C {dir}",
-                        dir = dir,
-                        filename = filename
+                        "mkdir -p {dir} && tar -xvf {filename} -C {dir}"
                     )
                 }),
             ),
             (
-                Box::new(|s: &str| format!("tar --extract -f {}", s)),
+                Box::new(|s: &str| format!("tar --extract -f {s}")),
                 Box::new(|dir: &str, filename: &str| {
                     format!(
-                        "mkdir -p {dir} && tar --extract -f {filename} -C {dir}",
-                        dir = dir,
-                        filename = filename
+                        "mkdir -p {dir} && tar --extract -f {filename} -C {dir}"
                     )
                 }),
             ),
