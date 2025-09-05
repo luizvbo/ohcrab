@@ -20,7 +20,7 @@ pub fn get_new_command(command: &mut CrabCommand, system_shell: Option<&dyn Shel
                     if let Some(dir_str) = parent_dir.to_str() {
                         return vec![system_shell
                             .unwrap()
-                            .and(vec![&format!("mkdir -p {}", dir_str), &command.script])];
+                            .and(vec![&format!("mkdir -p {dir_str}"), &command.script])];
                     }
                 }
             }
@@ -43,7 +43,7 @@ pub fn get_rule() -> Rule {
 
 #[cfg(test)]
 mod tests {
-    use super::{get_new_command, match_rule};
+    use super::{get_new_command, match_logic};
     use crate::cli::command::CrabCommand;
     use crate::shell::Bash;
 
@@ -54,10 +54,10 @@ mod tests {
             Some("touch: cannot touch 'a/b/c': No such file or directory".to_owned()),
             None,
         );
-        assert!(match_rule(&mut command, None));
+        assert!(match_logic(&mut command));
         let mut command_no_match =
             CrabCommand::new("touch a/b/c".to_owned(), Some("".to_owned()), None);
-        assert!(!match_rule(&mut command_no_match, None));
+        assert!(!match_logic(&mut command_no_match));
     }
 
     #[test]

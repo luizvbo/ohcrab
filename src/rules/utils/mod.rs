@@ -26,7 +26,7 @@ pub fn match_rule_with_is_app<F>(
 where
     F: Fn(&CrabCommand) -> bool,
 {
-    if aux_is_app(command, app_names, at_least) {
+    if aux_is_app(command, &app_names, at_least) {
         func(command)
     } else {
         false

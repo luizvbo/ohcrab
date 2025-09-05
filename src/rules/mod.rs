@@ -162,7 +162,7 @@ impl Rule {
             enabled_by_default: enabled_by_default.unwrap_or(true),
             priority: priority.unwrap_or(1000),
             requires_output: requires_output.unwrap_or(true),
-            match_rule, 
+            match_rule,
             get_new_command,
             side_effect,
         }

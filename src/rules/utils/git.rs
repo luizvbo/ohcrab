@@ -22,7 +22,7 @@ where
     // supports GitHub's `hub` command
     // which is recommended to be used with `alias git=hub`
     // but at this point, shell aliases have already been resolved
-    if !aux_is_app(command, vec!["git", "hub"], None) {
+    if !aux_is_app(command, &["git", "hub"], None) {
         return false;
     }
 
@@ -65,7 +65,7 @@ where
     // supports GitHub's `hub` command
     // which is recommended to be used with `alias git=hub`
     // but at this point, shell aliases have already been resolved
-    if !aux_is_app(command, vec!["git", "hub"], None) {
+    if !aux_is_app(command, &["git", "hub"], None) {
         return Vec::<String>::new();
     }
     let mut new_command = command;
@@ -103,7 +103,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{get_new_command_with_git_support, aux_is_app, match_rule_with_git_support};
+    use super::{aux_is_app, get_new_command_with_git_support, match_rule_with_git_support};
     use crate::cli::command::CrabCommand;
     use crate::shell::Shell;
     use rstest::rstest;
@@ -126,7 +126,7 @@ mod tests {
         #[case] is_app_bool: bool,
     ) {
         let mut command = CrabCommand::new(script.to_owned(), None, None);
-        assert_eq!(aux_is_app(&command, app_names, at_least), is_app_bool);
+        assert_eq!(aux_is_app(&command, &app_names, at_least), is_app_bool);
     }
 
     #[rstest]
