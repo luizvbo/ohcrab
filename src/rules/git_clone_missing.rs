@@ -32,7 +32,7 @@ pub fn get_rule() -> Rule {
         None,
         None,
         None,
-        match_rule,
+        Box::new(match_rule),
         get_new_command,
         None,
     )
@@ -46,7 +46,7 @@ mod tests {
     use crate::{parameterized_get_new_command_tests, parameterized_match_rule_tests};
 
     parameterized_match_rule_tests! {
-        match_rule,
+        Box::new(match_rule),
         match_rule_01: ("https://github.com/nvbn/thefuck.git", "No such file or directory", true),
         match_rule_02: ("https://github.com/nvbn/thefuck.git", "not found", true),
         match_rule_03: ("https://github.com/nvbn/thefuck.git", "is not recognised as", true),
