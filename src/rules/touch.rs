@@ -1,18 +1,14 @@
 use super::Rule;
-use crate::{cli::command::CrabCommand, rules::utils::match_rule_with_is_app, shell::Shell};
+use crate::{cli::command::CrabCommand, rules::utils::is_app, shell::Shell};
 use regex::Regex;
 use std::path::Path;
 
-fn auxiliary_match_rule(command: &CrabCommand) -> bool {
+fn match_logic(command: &CrabCommand) -> bool {
     if let Some(output) = &command.output {
-        output.contains("touch: cannot touch") && output.contains("No such file or directory")
+        output.contains("No such file or directory")
     } else {
         false
     }
-}
-
-pub fn match_rule(command: &mut CrabCommand, system_shell: Option<&dyn Shell>) -> bool {
-    match_rule_with_is_app(auxiliary_match_rule, command, vec!["touch"], None)
 }
 
 pub fn get_new_command(command: &mut CrabCommand, system_shell: Option<&dyn Shell>) -> Vec<String> {
@@ -39,7 +35,7 @@ pub fn get_rule() -> Rule {
         None,
         None,
         None,
-        match_rule,
+        is_app(vec!["touch"], None, match_logic),
         get_new_command,
         None,
     )

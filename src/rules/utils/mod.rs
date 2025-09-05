@@ -1,4 +1,4 @@
-use crate::cli::command::CrabCommand;
+use crate::{cli::command::CrabCommand, shell::Shell};
 use std::path::Path;
 
 pub mod git;
@@ -26,7 +26,7 @@ pub fn match_rule_with_is_app<F>(
 where
     F: Fn(&CrabCommand) -> bool,
 {
-    if is_app(command, app_names, at_least) {
+    if aux_is_app(command, app_names, at_least) {
         func(command)
     } else {
         false
@@ -44,7 +44,7 @@ where
 /// # Returns
 ///
 /// * `bool` - Returns true if the command is an application, false otherwise.
-fn is_app(command: &CrabCommand, app_names: Vec<&str>, at_least: Option<usize>) -> bool {
+fn aux_is_app(command: &CrabCommand, app_names: &[&str], at_least: Option<usize>) -> bool {
     let at_least = at_least.unwrap_or(0);
     if command.script_parts.len() > at_least {
         let app_name = Path::new(&command.script_parts[0])
@@ -53,6 +53,19 @@ fn is_app(command: &CrabCommand, app_names: Vec<&str>, at_least: Option<usize>) 
             .unwrap_or("");
         return app_names.contains(&app_name);
     }
-
     false
+}
+
+pub fn is_app<'a>(
+    app_names: Vec<&'a str>,
+    at_least: Option<usize>,
+    rule_logic: fn(&CrabCommand) -> bool,
+) -> Box<dyn Fn(&mut CrabCommand, Option<&dyn Shell>) -> bool + 'a> {
+    Box::new(move |command, _| {
+        if aux_is_app(command, &app_names, at_least) {
+            rule_logic(command)
+        } else {
+            false
+        }
+    })
 }

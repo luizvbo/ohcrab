@@ -122,6 +122,7 @@ mod rm_dir;
 mod sudo;
 mod sudo_command_from_user_path;
 mod tmux;
+mod touch;
 mod unsudo;
 
 mod utils;
@@ -152,7 +153,7 @@ impl Rule {
         enabled_by_default: Option<bool>,
         priority: Option<u16>,
         requires_output: Option<bool>,
-        match_rule: fn(&mut CrabCommand, Option<&dyn Shell>) -> bool,
+        match_rule: Box<dyn Fn(&mut CrabCommand, Option<&dyn Shell>) -> bool>,
         get_new_command: fn(&mut CrabCommand, Option<&dyn Shell>) -> Vec<String>,
         side_effect: Option<fn(CrabCommand, Option<&str>)>,
     ) -> Self {
