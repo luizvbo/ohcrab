@@ -199,25 +199,19 @@ mod tests {
             (
                 Box::new(|s: &str| format!("tar xvf {s}")),
                 Box::new(|dir: &str, filename: &str| {
-                    format!(
-                        "mkdir -p {dir} && tar xvf {filename} -C {dir}"
-                    )
+                    format!("mkdir -p {dir} && tar xvf {filename} -C {dir}")
                 }),
             ),
             (
                 Box::new(|s: &str| format!("tar -xvf {s}")),
                 Box::new(|dir: &str, filename: &str| {
-                    format!(
-                        "mkdir -p {dir} && tar -xvf {filename} -C {dir}"
-                    )
+                    format!("mkdir -p {dir} && tar -xvf {filename} -C {dir}")
                 }),
             ),
             (
                 Box::new(|s: &str| format!("tar --extract -f {s}")),
                 Box::new(|dir: &str, filename: &str| {
-                    format!(
-                        "mkdir -p {dir} && tar --extract -f {filename} -C {dir}"
-                    )
+                    format!("mkdir -p {dir} && tar --extract -f {filename} -C {dir}")
                 }),
             ),
         ]

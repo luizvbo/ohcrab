@@ -36,7 +36,7 @@ fn main() {
     // Write the vec! macro call with all the rules
     writeln!(f, "vec![").unwrap();
     for module in &rule_modules {
-        writeln!(f, "    {}::get_rule(),", module).unwrap();
+        writeln!(f, "    {module}::get_rule(),").unwrap();
     }
     writeln!(f, "]").unwrap();
 }
