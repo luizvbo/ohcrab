@@ -54,10 +54,10 @@ mod tests {
             Some("touch: cannot touch 'a/b/c': No such file or directory".to_owned()),
             None,
         );
-        assert!(match_logic(&mut command));
+        assert!(match_logic(&command));
         let mut command_no_match =
             CrabCommand::new("touch a/b/c".to_owned(), Some("".to_owned()), None);
-        assert!(!match_logic(&mut command_no_match));
+        assert!(!match_logic(&command_no_match));
     }
 
     #[test]

@@ -120,7 +120,7 @@ To push the current branch and set the remote as upstream, use
     }
 
     parameterized_match_rule_tests! {
-        Box::new(match_rule),
+        match_rule,
         match_rule_01: ("git push", output_with_branch("master"), true),
         match_rule_02: ("git push origin", output_with_branch("master"), true),
         unmatch_rule_01: ("git push origin", OUTPUT_BITBUCKET, false),

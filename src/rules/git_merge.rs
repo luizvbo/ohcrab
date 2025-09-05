@@ -71,7 +71,7 @@ mod tests {
         "merge: local - not something we can merge\n\nDid you mean this?\n\tremote/local";
 
     parameterized_match_rule_tests! {
-        Box::new(match_rule),
+        match_rule,
         match_rule_01: ("git merge test", OUTPUT, true),
         unmatch_rule_01: ("git merge master", "", false),
         unmatch_rule_02: ("ls", OUTPUT, false),

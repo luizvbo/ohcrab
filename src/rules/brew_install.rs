@@ -117,14 +117,14 @@ mod tests {
     }
 
     parameterized_match_rule_tests! {
-        Box::new(match_rule),
+        match_rule,
         match_rule_1: ("brew install giss", BREW_NO_AVAILABLE_FORMULA_ONE),
         match_rule_2: ("brew install elasticserar", BREW_NO_AVAILABLE_FORMULA_TWO),
         match_rule_3: ("brew install gitt", BREW_NO_AVAILABLE_FORMULA_THREE),
     }
 
     parameterized_unmatch_rule_tests! {
-        Box::new(match_rule),
+        match_rule,
         unmatch_rule_1: ("brew install git", BREW_ALREADY_INSTALLED),
         unmatch_rule_2: ("brew install", BREW_INSTALL_NO_ARGUMENT),
     }
