@@ -56,7 +56,9 @@ fn test_command_with_quotes() {
         .arg("git comit -m \"a message with spaces\"")
         .assert()
         .success()
-        .stdout(predicate::str::contains("git commit -m \"a message with spaces\""));
+        .stdout(predicate::str::contains(
+            "git commit -m \"a message with spaces\"",
+        ));
 }
 
 // Command Corrected by `no_command` Rule
