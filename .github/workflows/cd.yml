@@ -94,9 +94,9 @@ jobs:
       # Use --dry-run for pre-releases to avoid publishing them
       - name: Dry-run publish to crates.io (Pre-release)
         if: github.event.release.prerelease
-        run: cargo publish --token ${{ secrets.CARGO_API_TOKEN }} --dry-run
+        run: cargo publish --token ${{ secrets.CRATES_IO_API_TOKEN }} --dry-run
 
       # Only publish full releases
       - name: Publish to crates.io (Full Release)
         if: "!github.event.release.prerelease"
-        run: cargo publish --token ${{ secrets.CARGO_API_TOKEN }}
+        run: cargo publish --token ${{ secrets.CRATES_IO_API_TOKEN }}
