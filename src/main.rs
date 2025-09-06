@@ -32,10 +32,10 @@ fn handle_command_correction(
     select_first: bool,
 ) {
     let command_vec: Vec<String> = command_values.collect();
-    debug_log(&format!("Retrieved command(s): {:?}", command_vec));
+    debug_log(&format!("Retrieved command(s): {command_vec:?}"));
 
     let mut crab_command = run_command(command_vec, system_shell);
-    debug_log(&format!("Crab command: {:?}", crab_command));
+    debug_log(&format!("Crab command: {crab_command:?}"));
 
     let corrected_commands = get_corrected_commands(&mut crab_command, system_shell);
     debug_log(&format!(
@@ -57,7 +57,7 @@ fn handle_command_correction(
         if !select_first {
             eprintln!();
         }
-        debug_log(&format!("Command selected: {:?}", valid_command));
+        debug_log(&format!("Command selected: {valid_command:?}"));
         valid_command.run(crab_command);
     }
 }

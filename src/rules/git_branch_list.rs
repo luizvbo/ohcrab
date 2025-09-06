@@ -35,7 +35,7 @@ pub fn get_rule() -> Rule {
         None,
         None,
         None,
-        match_rule,
+        Box::new(match_rule),
         get_new_command,
         None,
     )

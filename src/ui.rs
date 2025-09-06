@@ -67,7 +67,7 @@ pub fn interactive_menu(corrected_commands: &[CorrectedCommand]) -> Option<&Corr
                 Key::Char(c) => {
                     // Clear the line before exiting
                     let prefix = "\r\x1B[K";
-                    eprint!("{}", prefix);
+                    eprint!("{prefix}");
                     return None;
                 }
                 _ => {}
