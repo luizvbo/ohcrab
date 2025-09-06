@@ -1,5 +1,5 @@
 use super::Rule;
-use crate::{cli::command::CrabCommand, rules::utils::is_app, shell::Shell};
+use crate::{cli::command::CrabCommand, rules::utils::is_app_match_rule, shell::Shell};
 use regex::Regex;
 use std::path::Path;
 
@@ -35,7 +35,7 @@ pub fn get_rule() -> Rule {
         None,
         None,
         None,
-        is_app(vec!["touch"], None, match_logic),
+        is_app_match_rule(vec!["touch"], None, match_logic),
         get_new_command,
         None,
     )

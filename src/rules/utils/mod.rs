@@ -26,7 +26,7 @@ pub fn match_rule_with_is_app<F>(
 where
     F: Fn(&CrabCommand) -> bool,
 {
-    if aux_is_app(command, &app_names, at_least) {
+    if is_app(command, &app_names, at_least) {
         func(command)
     } else {
         false
@@ -44,7 +44,7 @@ where
 /// # Returns
 ///
 /// * `bool` - Returns true if the command is an application, false otherwise.
-fn aux_is_app(command: &CrabCommand, app_names: &[&str], at_least: Option<usize>) -> bool {
+fn is_app(command: &CrabCommand, app_names: &[&str], at_least: Option<usize>) -> bool {
     let at_least = at_least.unwrap_or(0);
     if command.script_parts.len() > at_least {
         let app_name = Path::new(&command.script_parts[0])
@@ -56,13 +56,74 @@ fn aux_is_app(command: &CrabCommand, app_names: &[&str], at_least: Option<usize>
     false
 }
 
-pub fn is_app<'a>(
+/// A factory function that creates a `match_rule` closure for a specific application.
+///
+/// This is a higher-order function that acts as an ergonomic helper, similar to
+/// the `@for_app` decorator in `thefuck`. It wraps the provided core `rule_logic`
+/// in a check that first verifies if the command's executable matches one of the
+/// specified `app_names`. This avoids boilerplate code in every rule that is
+/// specific to one or more applications.
+///
+/// # Arguments
+///
+/// * `app_names` - A vector of string slices representing the application names
+///   (e.g., `vec!["git", "hub"]`) that the rule should match. The check is performed
+///   on the base name of the command executable.
+/// * `at_least` - An optional `usize` specifying the minimum number of parts
+///   (including the command itself) that the script must have for the rule to match.
+///   For example, `Some(2)` would be appropriate for a rule matching `brew install`.
+/// * `rule_logic` - A function pointer to the core matching logic. This function
+///   is only executed if the application name and `at_least` checks pass. It
+///   takes a `&CrabCommand` and returns `true` if the rule is a match.
+///
+/// # Returns
+///
+/// A `Box<dyn Fn(...) -> bool>`, which is a boxed closure. This closure has the
+/// exact signature required by the `match_rule` field in a `Rule` struct and
+/// can be used directly in its constructor.
+///
+/// # Example
+///
+/// ```rust
+/// // in some_rule.rs
+/// use crate::rules::{Rule, utils};
+/// use crate::cli::command::CrabCommand;
+/// use crate::shell::Shell;
+///
+/// // The core logic for the rule, which doesn't need to check the app name.
+/// fn match_logic(command: &CrabCommand) -> bool {
+///     if let Some(output) = &command.output {
+///         output.contains("No such file or directory")
+///     } else {
+///         false
+///     }
+/// }
+///
+/// // A placeholder get_new_command function for the example.
+/// fn get_new_command(command: &mut CrabCommand, system_shell: Option<&dyn Shell>) -> Vec<String> {
+///     vec!["touch new_file".to_string()]
+/// }
+///
+/// pub fn get_rule() -> Rule {
+///     Rule::new(
+///         "touch_rule".to_owned(),
+///         None,
+///         None,
+///         None,
+///         // The factory function creates the final match_rule.
+///         utils::for_app(vec!["touch"], None, match_logic),
+///         get_new_command,
+///         None,
+///     )
+/// }
+/// ```
+pub fn is_app_match_rule<'a>(
     app_names: Vec<&'a str>,
     at_least: Option<usize>,
     rule_logic: fn(&CrabCommand) -> bool,
 ) -> Box<dyn Fn(&mut CrabCommand, Option<&dyn Shell>) -> bool + 'a> {
     Box::new(move |command, _| {
-        if aux_is_app(command, &app_names, at_least) {
+        if is_app(command, &app_names, at_least) {
             rule_logic(command)
         } else {
             false
