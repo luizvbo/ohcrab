@@ -86,7 +86,7 @@ pub fn get_rule() -> Rule {
     Rule::new(
         "git_add".to_owned(),
         None,
-        None,
+        Some(1100), // Increased priority
         None,
         Box::new(match_rule),
         get_new_command,

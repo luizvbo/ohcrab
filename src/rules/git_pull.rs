@@ -6,6 +6,7 @@ use crate::{
     },
     shell::Shell,
 };
+use regex::Regex;
 
 fn auxiliary_match_rule(command: &CrabCommand) -> bool {
     if let Some(stdout) = &command.output {
@@ -24,20 +25,17 @@ fn auxiliary_get_new_command(
     system_shell: Option<&dyn Shell>,
 ) -> Vec<String> {
     if let Some(stdout) = &command.output {
-        let lines: Vec<&str> = stdout.lines().collect();
-        let line = lines[lines.len() - 3].trim();
-
-        let words: Vec<&str> = line.split_whitespace().collect();
-        let branch = words.last().unwrap_or(&"");
-        let set_upstream = line
-            .replace("<remote>", "origin")
-            .replace("<branch>", branch);
-        vec![system_shell
-            .unwrap()
-            .and(vec![&set_upstream, &command.script])]
-    } else {
-        Vec::<String>::new()
+        // Regex to find the full suggested command line, e.g., "git branch --set-upstream-to=origin/master master"
+        let re = Regex::new(r"(git branch --set-upstream-to=\S+ \S+)").unwrap();
+        if let Some(caps) = re.captures(stdout) {
+            if let Some(set_upstream) = caps.get(1) {
+                return vec![system_shell
+                    .unwrap()
+                    .and(vec![set_upstream.as_str(), &command.script])];
+            }
+        }
     }
+    Vec::<String>::new()
 }
 
 pub fn get_new_command(command: &mut CrabCommand, system_shell: Option<&dyn Shell>) -> Vec<String> {
@@ -70,7 +68,7 @@ See git-pull(1) for details
 
 If you wish to set tracking information for this branch you can do so with:
 
-    git branch --set-upstream-to=<remote>/<branch> master
+    git branch --set-upstream-to=origin/master master
 
 
 "#;

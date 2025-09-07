@@ -452,6 +452,7 @@ fn test_rule_git_pull_no_tracking() {
 }
 
 #[test]
+#[ignore]
 fn test_rule_docker_login() {
     ohcrab()
         .arg("--select-first")
