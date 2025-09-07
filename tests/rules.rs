@@ -364,3 +364,117 @@ fn test_rule_git_branch_exists() {
         .success()
         .stdout(predicate::str::contains("git checkout existing_branch"));
 }
+
+#[test]
+fn test_rule_touch_create_missing_dir() {
+    let temp_dir = tempdir().unwrap();
+    ohcrab()
+        .current_dir(temp_dir.path())
+        .arg("--select-first")
+        .arg("--")
+        .arg("touch")
+        .arg("a/b/c")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("mkdir -p a/b && touch a/b/c"));
+}
+
+#[test]
+fn test_rule_git_add() {
+    let temp_dir = setup_git_repo();
+    let repo_path = temp_dir.path();
+    fs::write(repo_path.join("new_file.txt"), "new content").unwrap();
+
+    ohcrab()
+        .current_dir(repo_path)
+        .arg("--select-first")
+        .arg("--")
+        .arg("git")
+        .arg("commit")
+        .arg("new_file.txt")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "git add -- new_file.txt && git commit new_file.txt",
+        ));
+}
+
+#[test]
+fn test_rule_git_pull_no_tracking() {
+    // Setup a "remote" bare repository
+    let remote_dir = tempdir().unwrap();
+    StdCommand::new("git")
+        .args(["init", "--bare"])
+        .current_dir(remote_dir.path())
+        .output()
+        .expect("Failed to create bare repo");
+
+    // Setup a "local" repository
+    let local_dir = setup_git_repo();
+    let local_path = local_dir.path();
+
+    // Add the remote and push the main branch
+    StdCommand::new("git")
+        .args([
+            "remote",
+            "add",
+            "origin",
+            remote_dir.path().to_str().unwrap(),
+        ])
+        .current_dir(local_path)
+        .output()
+        .expect("Failed to add remote");
+
+    StdCommand::new("git")
+        .args(["push", "-u", "origin", "master"])
+        .current_dir(local_path)
+        .output()
+        .expect("Failed to push to remote");
+
+    // Create a new branch without tracking info
+    StdCommand::new("git")
+        .args(["checkout", "-b", "new-feature"])
+        .current_dir(local_path)
+        .output()
+        .expect("Failed to create new branch");
+
+    ohcrab()
+        .current_dir(local_path)
+        .arg("--select-first")
+        .arg("--")
+        .arg("git")
+        .arg("pull")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "git branch --set-upstream-to=origin/new-feature new-feature && git pull",
+        ));
+}
+
+#[test]
+fn test_rule_docker_login() {
+    ohcrab()
+        .arg("--select-first")
+        .arg("--")
+        .arg("docker")
+        .arg("pull")
+        .arg("private-repo/private-image")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "docker login && docker pull private-repo/private-image",
+        ));
+}
+
+#[test]
+fn test_rule_brew_install() {
+    ohcrab()
+        .arg("--select-first")
+        .arg("--")
+        .arg("brew")
+        .arg("install")
+        .arg("giss")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("brew install gist"));
+}
