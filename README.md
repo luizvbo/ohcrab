@@ -14,86 +14,21 @@
 
 ## Installation
 
-Currently, there are two methods of installation:
+You can install `ohcrab` using one of the methods below. The recommended way is using the installer script.
 
-1. [Downloading the binary](#downloading-the-binary)
-1. [Install using cargo](#install-from-cargo)
+### Installer Script (macOS & Linux)
 
-See below how to install using any of these methods.
-
-### Downloading the binary
-
-Follow these steps to download and install the package using the pre-compiled
-binaries for your OS and architecture:
-
-#### Download the file
-
-The binaries are available in the **Assets** section from the
-[release page](https://github.com/luizvbo/oh-crab/releases). Download the binary
-according to your system:
-
-- **ohcrab_x86_64_unknown_linux_gnu_vx.x.x.bin**: This binary is for Linux
-  devices with 64-bit Intel processors.
-- **ohcrab_i686_unknown_linux_gnu_vx.x.x.bin**: This binary is for Linux devices
-  with 32-bit Intel processors.
-- **ohcrab_aarch64_unknown_linux_gnu_vx.x.x.bin**: This binary is for Linux
-  devices with ARM 64-bit processors (like Raspberry Pi 3/4).
-- **ohcrab_x86_64_apple_darwin_vx.x.x.bin**: This binary is for Apple devices
-  with 64-bit Intel processors running macOS.
-- **ohcrab_aarch64_apple_darwin_vx.x.x.bin**: This binary is for Apple devices
-  (like the M1 Macs) running macOS.
-- **ohcrab_i686_unknown_freebsd_vx.x.x.bin**: This binary is for FreeBSD devices
-  with 32-bit Intel processors.
-- **ohcrab_x86_64_unknown_freebsd_vx.x.x.bin**: This binary is for FreeBSD
-  devices with 64-bit Intel processors.
-
-#### Make the binary executable
-
-After downloading the binary, you need to make it executable. Use the following
-command:
+You can install `ohcrab` by running the following command in your terminal:
 
 ```shell
-chmod +x <BINARY_NAME>
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/luizvbo/oh-crab/main/install.sh)"
 ```
 
-Replace `<BINARY_NAME>` with the name of your downloaded binary file.
+The script will automatically detect your operating system and architecture, download the latest binary, and install it to a local directory.
 
-#### Move the binary to /opt
+### Using Cargo
 
-We recommend moving the binary to the /opt directory and renaming it to
-`ohcrab`. Use the following command:
-
-```shell
-sudo mv <BINARY_NAME> /opt/ohcrab
-```
-
-#### Create a symbolic link
-
-Finally, create a symbolic link to the binary from a directory that's in your
-PATH, like /usr/local/bin. Use the following command:
-
-```shell
-sudo ln -s /opt/<BINARY_NAME> /usr/local/bin/
-```
-
-Now, you should be able to run your program from the terminal by typing
-`ohcrab`.
-
-Proceed to
-[adding ohcrab to your environment](#adding-ohcrab-to-your-environment) to
-finalize the installation.
-
-### Install from cargo
-
-#### Prerequisite
-
-For now, it is only possible to install `ohcrab` through `cargo`. If you don't
-have cargo installed, you can install it following the instructions from
-[https://doc.rust-lang.org/cargo/getting-started/installation.html](https://doc.rust-lang.org/cargo/getting-started/installation.html).
-
-#### Installing the package
-
-You can install `ohcrab` using [`cargo`](https://crates.io/):
+If you have Rust and Cargo installed, you can build and install `ohcrab` from source:
 
 ```shell
 cargo install ohcrab
@@ -101,32 +36,25 @@ cargo install ohcrab
 
 ### Adding ohcrab to your environment
 
-In order for `ohcrab` to work in your terminal, you need to export the correct
-function for your shell. Currently, we support `bash` and `zsh`. Copy and paste
-the respective command to your terminal:
+After installation, you need to add the `ohcrab` alias to your shell's configuration file. We currently support `bash` and `zsh`.
 
-- For `bash`, use:
+Run the appropriate command for your shell:
 
-```shell
-eval $(ohcrab --shell bash)
-```
+-   For **bash**:
+    ```shell
+    eval $(ohcrab --shell bash)
+    ```
 
-- For `zsh`, use:
+-   For **zsh**:
+    ```shell
+    eval $(ohcrab --shell zsh)
+    ```
 
-```shell
-eval $(ohcrab --shell zsh)
-```
-
-**NOTE**: In order to load `ohcrab` every time you open a terminal, add the
-`eval` command above to your .bash_profile, .bashrc, .zshrc or other startup
-script.
+To make the alias available in all your terminal sessions, add the `eval` command to your `.bash_profile`, `.bashrc`, `.zshrc`, or other startup script.
 
 ### Changing the alias
 
-The commands above use the default alias (`crab`) to call `ohcrab` from your
-terminal. Feel free to use your own alias by passing `--alias NEW_ALIAS` to use
-your `NEW_ALIAS` instead. For example, in case you want to use `shinycrab` as
-your alias in `zsh`, use
+The default alias is `crab`. You can change it by using the `--alias` flag when generating the shell function. For example, to use `shinycrab` in `zsh`, run:
 
 ```shell
 eval $(ohcrab --shell zsh --alias shinycrab)
@@ -134,9 +62,7 @@ eval $(ohcrab --shell zsh --alias shinycrab)
 
 ## Usage
 
-In the terminal, after typing the wrong command, type `crab` (or the alias you
-chose in during the [Exporting `ohcrab`](#exporting-ohcrab) step). It will show
-a menu to choose the correct command from.
+In the terminal, after typing the wrong command, type `crab` (or the alias you chose). It will show a menu to choose the correct command from.
 
 ## Contributing
 
