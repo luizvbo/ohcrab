@@ -4,11 +4,15 @@ use std::fs;
 use std::process::Command as StdCommand;
 use tempfile::tempdir;
 
-// Helper to get the binary command with a clean history environment
+// Helper to get the binary command in an isolated environment
 fn ohcrab() -> Command {
     let mut cmd = Command::cargo_bin("ohcrab").unwrap();
-    // Use a non-existent file path for HISTFILE to ensure no history is read.
-    cmd.env("HISTFILE", "/tmp/ohcrab_test_histfile_non_existent");
+    // Isolate tests from the user's shell history and other configs
+    cmd.env_clear()
+        .env("PATH", std::env::var("PATH").unwrap_or_default())
+        // By setting a temporary HOME, we prevent ohcrab from finding
+        // ~/.bash_history, ~/.zsh_history, ~/.gitconfig, etc.
+        .env("HOME", tempdir().unwrap().path());
     cmd
 }
 
@@ -18,22 +22,22 @@ fn setup_git_repo() -> tempfile::TempDir {
     let repo_path = temp_dir.path();
 
     StdCommand::new("git")
-        .args(&["init"])
-        .current_dir(&repo_path)
+        .args(["init"])
+        .current_dir(repo_path)
         .output()
         .expect("failed to initialize git repo");
 
     fs::write(repo_path.join("file.txt"), "content").unwrap();
 
     StdCommand::new("git")
-        .args(&["add", "file.txt"])
-        .current_dir(&repo_path)
+        .args(["add", "file.txt"])
+        .current_dir(repo_path)
         .output()
         .expect("failed to git add");
 
     StdCommand::new("git")
-        .args(&["commit", "-m", "initial commit"])
-        .current_dir(&repo_path)
+        .args(["commit", "-m", "initial commit"])
+        .current_dir(repo_path)
         .output()
         .expect("failed to git commit");
 
@@ -316,14 +320,16 @@ fn test_rule_rm_dir() {
 #[test]
 #[cfg(unix)]
 fn test_rule_sudo() {
+    // This command attempts to write to a protected directory (/etc),
+    // which should reliably trigger a "Permission denied" error.
     ohcrab()
         .arg("--select-first")
         .arg("--")
         .arg("touch")
-        .arg("/root/testfile")
+        .arg("/etc/testfile")
         .assert()
         .success()
-        .stdout(predicate::str::contains("sudo touch /root/testfile"));
+        .stdout(predicate::str::contains("sudo touch /etc/testfile"));
 }
 
 #[test]
@@ -332,8 +338,8 @@ fn test_rule_git_branch_exists() {
     let repo_path = temp_dir.path();
 
     StdCommand::new("git")
-        .args(&["branch", "existing_branch"])
-        .current_dir(&repo_path)
+        .args(["branch", "existing_branch"])
+        .current_dir(repo_path)
         .output()
         .unwrap();
 

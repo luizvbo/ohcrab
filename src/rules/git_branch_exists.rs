@@ -5,8 +5,11 @@ use crate::{
 use regex::Regex;
 
 fn auxiliary_match_rule(command: &CrabCommand) -> bool {
-    if let Some(stdout) = &command.output {
-        stdout.contains("fatal: A branch named '") && stdout.contains("' already exists.")
+    if let Some(output) = &command.output {
+        // Use a more specific regex to avoid false positives
+        Regex::new(r"fatal: [Aa] branch named '.*' already exists")
+            .unwrap()
+            .is_match(output)
     } else {
         false
     }
@@ -21,17 +24,23 @@ fn auxiliary_get_new_command(
     system_shell: Option<&dyn Shell>,
 ) -> Vec<String> {
     if let Some(stdout) = &command.output {
-        let re_branch_name = Regex::new(r"fatal: A branch named '(.+)' already exists.").unwrap();
+        // Corrected regex: removed the trailing '.' to match lines ending with '\n'
+        let re_branch_name = Regex::new(r"fatal: [Aa] branch named '(.+)' already exists").unwrap();
         if let Some(captures) = re_branch_name.captures(stdout) {
             let mut new_commands = Vec::<String>::new();
-            let branch_name = &captures[1].replace('\'', r"\'");
+            let branch_name = captures
+                .get(1)
+                .map_or("", |m| m.as_str())
+                .replace('\'', r"\'");
+
             let new_command_templates = vec![
+                vec!["git checkout"],
                 vec!["git branch -d", "git branch"],
                 vec!["git branch -d", "git checkout -b"],
                 vec!["git branch -D", "git branch"],
                 vec!["git branch -D", "git checkout -b"],
-                vec!["git checkout"],
             ];
+
             for new_command_template in new_command_templates {
                 let new_command_with_branch = new_command_template
                     .iter()
@@ -73,14 +82,16 @@ mod tests {
     use super::{get_new_command, match_rule};
     use crate::cli::command::CrabCommand;
     use crate::shell::Bash;
+    use rstest::rstest;
 
     const OUTPUT: &str = "fatal: A branch named '#' already exists.";
-
-    use rstest::rstest;
+    const OUTPUT_LOWERCASE: &str = "fatal: a branch named '#' already exists.";
+    const OUTPUT_WITH_NEWLINE: &str = "fatal: a branch named '#' already exists.\n";
 
     #[rstest]
     #[case("git branch foo", "foo", OUTPUT)]
-    #[case("git checkout bar", "bar", OUTPUT)]
+    #[case("git checkout bar", "bar", OUTPUT_LOWERCASE)]
+    #[case("git checkout -b baz", "baz", OUTPUT_WITH_NEWLINE)]
     #[case("git checkout -b \"let's-push-this\"", "\"let's-push-this\"", OUTPUT)]
     fn test_match(
         #[case] command: &str,
@@ -103,7 +114,8 @@ mod tests {
 
     #[rstest]
     #[case("git branch foo", "foo", "foo", OUTPUT)]
-    #[case("git checkout bar", "bar", "bar", OUTPUT)]
+    #[case("git checkout bar", "bar", "bar", OUTPUT_LOWERCASE)]
+    #[case("git checkout baz", "baz", "baz", OUTPUT_WITH_NEWLINE)]
     #[case(
         "git checkout -b \"let's-push-this\"",
         "let's-push-this",
@@ -117,11 +129,11 @@ mod tests {
         #[case] stdout_template: &str,
     ) {
         let expected: Vec<String> = [
+            "git checkout #",
             "git branch -d # && git branch #",
             "git branch -d # && git checkout -b #",
             "git branch -D # && git branch #",
             "git branch -D # && git checkout -b #",
-            "git checkout #",
         ]
         .iter()
         .map(|s| s.replace('#', branch_name))
