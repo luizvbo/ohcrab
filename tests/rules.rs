@@ -1,14 +1,15 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
-use std::fs::File;
-use std::io::Write;
 use std::process::Command as StdCommand;
 use tempfile::tempdir;
 
-// Helper to get the binary command
+// Helper to get the binary command with a clean history environment
 fn ohcrab() -> Command {
-    Command::cargo_bin("ohcrab").unwrap()
+    let mut cmd = Command::cargo_bin("ohcrab").unwrap();
+    // Use a non-existent file path for HISTFILE to ensure no history is read.
+    cmd.env("HISTFILE", "/tmp/ohcrab_test_histfile_non_existent");
+    cmd
 }
 
 // Helper to set up a temporary git repository

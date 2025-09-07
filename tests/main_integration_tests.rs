@@ -1,9 +1,6 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 
-// Add this line to include the new test module
-mod rules;
-
 #[test]
 fn test_alias_generation() {
     let mut cmd = Command::cargo_bin("ohcrab").unwrap();

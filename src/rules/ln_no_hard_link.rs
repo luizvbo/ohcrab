@@ -7,7 +7,9 @@ use regex::Regex;
 fn auxiliary_match_rule(command: &CrabCommand) -> bool {
     if let Some(output) = &command.output {
         command.script_parts.first().is_some_and(|s| s == "ln")
-            && output.ends_with("hard link not allowed for directory")
+            && output
+                .trim()
+                .ends_with("hard link not allowed for directory")
     } else {
         false
     }
