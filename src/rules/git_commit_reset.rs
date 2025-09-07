@@ -5,6 +5,14 @@ use crate::{
 use super::{utils::git::get_new_command_with_git_support, Rule};
 
 fn auxiliary_match_rule(command: &CrabCommand) -> bool {
+    if let Some(output) = &command.output {
+        // Don't match if other, more specific rules should apply
+        if output.contains("no changes added to commit")
+            || output.contains("did not match any file(s) known to git")
+        {
+            return false;
+        }
+    }
     command.script_parts.contains(&"commit".to_owned())
 }
 

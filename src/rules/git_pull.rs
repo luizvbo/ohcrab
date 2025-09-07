@@ -25,14 +25,20 @@ fn auxiliary_get_new_command(
     system_shell: Option<&dyn Shell>,
 ) -> Vec<String> {
     if let Some(stdout) = &command.output {
-        // Regex to find the full suggested command line, e.g., "git branch --set-upstream-to=origin/master master"
-        let re = Regex::new(r"(git branch --set-upstream-to=\S+ \S+)").unwrap();
+        // Regex to find the suggestion line
+        let re = Regex::new(r"git branch --set-upstream-to=([^\s]+) ([^\s]+)").unwrap();
         if let Some(caps) = re.captures(stdout) {
-            if let Some(set_upstream) = caps.get(1) {
-                return vec![system_shell
-                    .unwrap()
-                    .and(vec![set_upstream.as_str(), &command.script])];
-            }
+            // The suggestion line is the full match
+            let mut suggestion = caps.get(0).unwrap().as_str().to_string();
+            // The branch name is the last part of the suggestion
+            let branch_name = caps.get(2).unwrap().as_str();
+
+            // Replace the <branch> placeholder with the actual branch name
+            suggestion = suggestion.replace("<branch>", branch_name);
+
+            return vec![system_shell
+                .unwrap()
+                .and(vec![&suggestion, &command.script])];
         }
     }
     Vec::<String>::new()
