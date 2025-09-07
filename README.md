@@ -206,9 +206,11 @@ new rules or improving the crate.
 - [x] rails_migrations_pending
 - [x] remove_shell_prompt_literal
 - [x] rm_dir
+- [x] sl_ls
 - [x] sudo
 - [x] sudo_command_from_user_path
 - [x] tmux
+- [x] touch
 - [x] unsudo
 
 </details>
@@ -245,14 +247,12 @@ new rules or improving the crate.
 - [ ] rm_root
 - [ ] scm_correction
 - [ ] sed_unterminated_s
-- [ ] sl_ls
 - [ ] ssh_known_hosts
 - [ ] switch_lang
 - [ ] systemctl
 - [ ] terraform_init
 - [ ] terraform_no_command
 - [ ] test
-- [ ] touch
 - [ ] tsuru_login
 - [ ] tsuru_not_command
 - [ ] unknown_command

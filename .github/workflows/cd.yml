@@ -10,7 +10,6 @@ permissions:
 jobs:
   create-release-artifacts:
     name: Build Release Artifacts
-    # Only run on version tags
     if: startsWith(github.event.release.tag_name, 'v')
     strategy:
       matrix:
@@ -19,13 +18,14 @@ jobs:
             os: ubuntu-latest
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
+          - target: i686-unknown-linux-gnu
+            os: ubuntu-latest
           - target: x86_64-apple-darwin
             os: macos-latest
           - target: aarch64-apple-darwin
             os: macos-latest
-          # You can add Windows here if you support it
-          # - target: x86_64-pc-windows-msvc
-          #   os: windows-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
@@ -36,26 +36,27 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Setup cross-compilation for Linux aarch64
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
+      - name: Setup cross-compilation for Linux
+        if: matrix.os == 'ubuntu-latest' && matrix.target != 'x86_64-unknown-linux-gnu'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          elif [ "${{ matrix.target }}" = "i686-unknown-linux-gnu" ]; then
+            sudo apt-get install -y gcc-i686-linux-gnu
+          fi
 
       - name: Build binary
         run: cargo build --release --target ${{ matrix.target }}
         env:
-          # Required for cross-compiling on Linux
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CARGO_TARGET_I686_UNKNOWN_LINUX_GNU_LINKER: i686-linux-gnu-gcc
 
       - name: Prepare artifacts for release
         shell: bash
         run: |
-          # The binary name from your Cargo.toml
           BINARY_NAME="ohcrab"
-          # The standardized artifact name for the release
           ARTIFACT_FILENAME="${BINARY_NAME}-${{ matrix.target }}"
-
           EXECUTABLE_PATH="./target/${{ matrix.target }}/release/${BINARY_NAME}"
 
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
@@ -65,7 +66,6 @@ jobs:
             mv "${EXECUTABLE_PATH}" "./${ARTIFACT_FILENAME}"
           fi
 
-          # Set environment variables for the next step
           echo "ASSET_PATH=./${ARTIFACT_FILENAME}" >> $GITHUB_ENV
           echo "ASSET_NAME=${ARTIFACT_FILENAME}" >> $GITHUB_ENV
 
@@ -91,12 +91,10 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      # Use --dry-run for pre-releases to avoid publishing them
       - name: Dry-run publish to crates.io (Pre-release)
         if: github.event.release.prerelease
         run: cargo publish --token ${{ secrets.CRATES_IO_API_TOKEN }} --dry-run
 
-      # Only publish full releases
       - name: Publish to crates.io (Full Release)
         if: "!github.event.release.prerelease"
         run: cargo publish --token ${{ secrets.CRATES_IO_API_TOKEN }}
