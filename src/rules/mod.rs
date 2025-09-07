@@ -119,6 +119,7 @@ mod quotation_marks;
 mod rails_migrations_pending;
 mod remove_shell_prompt_literal;
 mod rm_dir;
+mod sl_ls;
 mod sudo;
 mod sudo_command_from_user_path;
 mod tmux;
