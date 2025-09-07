@@ -9,10 +9,20 @@ fn ohcrab() -> Command {
     let mut cmd = Command::cargo_bin("ohcrab").unwrap();
     // Isolate tests from the user's shell history and other configs
     cmd.env_clear()
-        .env("PATH", std::env::var("PATH").unwrap_or_default())
-        // By setting a temporary HOME, we prevent ohcrab from finding
-        // ~/.bash_history, ~/.zsh_history, ~/.gitconfig, etc.
-        .env("HOME", tempdir().unwrap().path());
+        .env("PATH", std::env::var("PATH").unwrap_or_default());
+
+    // Preserve rustup and cargo home so cargo can find its toolchain.
+    // This is crucial for tests that invoke `cargo`.
+    if let Ok(rustup_home) = std::env::var("RUSTUP_HOME") {
+        cmd.env("RUSTUP_HOME", rustup_home);
+    }
+    if let Ok(cargo_home) = std::env::var("CARGO_HOME") {
+        cmd.env("CARGO_HOME", cargo_home);
+    }
+
+    // By setting a temporary HOME, we prevent ohcrab from finding
+    // ~/.bash_history, ~/.zsh_history, ~/.gitconfig, etc.
+    cmd.env("HOME", tempdir().unwrap().path());
     cmd
 }
 
