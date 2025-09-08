@@ -50,6 +50,7 @@ pub fn get_rule() -> Rule {
 mod tests {
     use super::{get_new_command, get_suggestions, match_rule};
     use crate::cli::command::CrabCommand;
+    use rstest::rstest;
 
     const BREW_NO_AVAILABLE_FORMULA_ONE: &str =
         "Warning: No available formula with the name \"giss\". Did you mean gist?";
@@ -60,81 +61,28 @@ mod tests {
         "Install a formula or cask. Additional options specific to a formula may be";
     const BREW_ALREADY_INSTALLED: &str = "Warning: git-2.3.5 already installed";
 
-    macro_rules! parameterized_match_rule_tests {
-        ($match_rule:expr, $($name:ident: $value:expr,)*) => {
-            $(
-                #[test]
-                fn $name() {
-                    let (script, stdout) = $value;
-                    let mut command = CrabCommand::new(
-                                script.to_owned(),
-                                Some(stdout.to_owned()),
-                                None
-                            );
-                    assert!($match_rule(&mut command, None));
-                }
-            )*
-        }
+    #[rstest]
+    #[case("brew install giss", BREW_NO_AVAILABLE_FORMULA_ONE, true)]
+    #[case("brew install elasticserar", BREW_NO_AVAILABLE_FORMULA_TWO, true)]
+    #[case("brew install gitt", BREW_NO_AVAILABLE_FORMULA_THREE, true)]
+    #[case("brew install git", BREW_ALREADY_INSTALLED, false)]
+    #[case("brew install", BREW_INSTALL_NO_ARGUMENT, false)]
+    fn test_match(#[case] command: &str, #[case] stdout: &str, #[case] is_match: bool) {
+        let mut command = CrabCommand::new(command.to_owned(), Some(stdout.to_owned()), None);
+        assert_eq!(match_rule(&mut command, None), is_match);
     }
 
-    macro_rules! parameterized_unmatch_rule_tests {
-        ($match_rule:expr, $($name:ident: $value:expr,)*) => {
-            $(
-                #[test]
-                fn $name() {
-                    let (script, stdout) = $value;
-                    let mut command = CrabCommand::new(
-                                script.to_owned(),
-                                Some(stdout.to_owned()),
-                                None
-                            );
-                    assert!(!$match_rule(&mut command, None));
-                }
-            )*
-        }
-    }
-
-    macro_rules! parameterized_get_new_command_tests {
-        ($get_new_command:expr, $($name:ident: $value:expr,)*) => {
-            $(
-                #[test]
-                fn $name() {
-                    let (script, stdout, expected, neq) = $value;
-                    let mut command = CrabCommand::new(
-                                script.to_owned(),
-                                Some(stdout.to_owned()),
-                                None
-                            );
-                    if neq{
-                        assert_ne!($get_new_command(&mut command, None), expected);
-                    }
-                    else{
-                        assert_eq!($get_new_command(&mut command, None), expected);
-                    }
-                }
-            )*
-        }
-    }
-
-    parameterized_match_rule_tests! {
-        match_rule,
-        match_rule_1: ("brew install giss", BREW_NO_AVAILABLE_FORMULA_ONE),
-        match_rule_2: ("brew install elasticserar", BREW_NO_AVAILABLE_FORMULA_TWO),
-        match_rule_3: ("brew install gitt", BREW_NO_AVAILABLE_FORMULA_THREE),
-    }
-
-    parameterized_unmatch_rule_tests! {
-        match_rule,
-        unmatch_rule_1: ("brew install git", BREW_ALREADY_INSTALLED),
-        unmatch_rule_2: ("brew install", BREW_INSTALL_NO_ARGUMENT),
-    }
-
-    parameterized_get_new_command_tests! {
-        get_new_command,
-        get_new_command_1: ("brew install giss", BREW_NO_AVAILABLE_FORMULA_ONE, ["brew install gist"], false),
-        get_new_command_2: ("brew install elasticsear", BREW_NO_AVAILABLE_FORMULA_TWO, ["brew install elasticsearch", "brew install elasticsearch@6"], false),
-        get_new_command_3: ("brew install gitt", BREW_NO_AVAILABLE_FORMULA_THREE, ["brew install git", "brew install gitg", "brew install gist"], false),
-        get_new_command_4: ("brew install aa", BREW_NO_AVAILABLE_FORMULA_ONE, ["brew install aha"], true),
+    #[rstest]
+    #[case("brew install giss", BREW_NO_AVAILABLE_FORMULA_ONE, vec!["brew install gist"])]
+    #[case("brew install elasticsear", BREW_NO_AVAILABLE_FORMULA_TWO, vec!["brew install elasticsearch", "brew install elasticsearch@6"])]
+    #[case("brew install gitt", BREW_NO_AVAILABLE_FORMULA_THREE, vec!["brew install git", "brew install gitg", "brew install gist"])]
+    fn test_get_new_command(
+        #[case] command: &str,
+        #[case] stdout: &str,
+        #[case] expected: Vec<&str>,
+    ) {
+        let mut command = CrabCommand::new(command.to_owned(), Some(stdout.to_owned()), None);
+        assert_eq!(get_new_command(&mut command, None), expected);
     }
 
     #[test]

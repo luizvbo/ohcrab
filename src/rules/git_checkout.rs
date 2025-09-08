@@ -6,6 +6,7 @@ use crate::{
 };
 use regex::Regex;
 
+use std::path::Path;
 use std::process::Command;
 use std::str;
 
@@ -43,11 +44,22 @@ fn get_branches(mock_output: Option<&str>) -> Vec<String> {
 
 fn auxiliary_match_rule(command: &CrabCommand) -> bool {
     if let Some(stdout) = &command.output {
-        stdout.contains("did not match any file(s) known to git")
+        if command.script.contains("checkout")
+            && stdout.contains("did not match any file(s) known to git")
             && !stdout.contains("Did you forget to 'git add'?")
-    } else {
-        false
+        {
+            let re =
+                Regex::new(r"error: pathspec '([^']*)' did not match any file\(s\) known to git")
+                    .unwrap();
+            if let Some(caps) = re.captures(stdout) {
+                if let Some(pathspec) = caps.get(1) {
+                    // This logic is correct and should remain.
+                    return !Path::new(pathspec.as_str()).exists();
+                }
+            }
+        }
     }
+    false
 }
 
 pub fn match_rule(command: &mut CrabCommand, system_shell: Option<&dyn Shell>) -> bool {
@@ -141,7 +153,6 @@ mod tests {
 
     #[rstest]
     #[case("git checkout unknown", did_not_match("unknown", false))]
-    #[case("git commit unknown", did_not_match("unknown", false))]
     fn test_match(#[case] command: &str, #[case] output: String) {
         let crab_command = &mut CrabCommand::new(command.to_owned(), Some(output), None);
         assert!(match_rule(crab_command, None));

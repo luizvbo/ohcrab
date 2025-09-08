@@ -7,41 +7,37 @@ use crate::{
     shell::Shell,
 };
 use regex::Regex;
-use shlex::Quoter; // Import the Quoter
+use shlex::Quoter;
 use std::path::Path;
 
-fn get_missing_file(command: &CrabCommand, path_exists: Option<bool>) -> Option<String> {
+fn get_missing_file(command: &CrabCommand, path_exists_mock: Option<bool>) -> Option<String> {
     if let Some(stdout) = &command.output {
-        let re = Regex::new(r"error: pathspec '([^']*)' did not match any file\(s\) known to git.")
+        let re = Regex::new(r"error: pathspec '([^']*)' did not match any file\(s\) known to git")
             .unwrap();
 
         if let Some(captures) = re.captures(stdout) {
-            let path = &captures[1];
-            if path.is_empty() {
-                None
-            } else if let Some(path_exists) = path_exists {
-                if path_exists {
-                    Some(path.to_owned())
-                } else {
-                    None
-                }
-            } else if Path::new(&path).exists() {
-                Some(path.to_owned())
-            } else {
-                None
+            let path_str = &captures[1];
+            if path_str.is_empty() {
+                return None;
             }
-        } else {
-            None
+
+            let file_exists = match path_exists_mock {
+                Some(mock) => mock,
+                None => Path::new(path_str).exists(),
+            };
+
+            if file_exists {
+                return Some(path_str.to_owned());
+            }
         }
-    } else {
-        None
     }
+    None
 }
 
-fn mockable_match_rule(command: &CrabCommand, path_exists: Option<bool>) -> bool {
+fn mockable_match_rule(command: &CrabCommand, path_exists_mock: Option<bool>) -> bool {
     if let Some(stdout) = &command.output {
-        stdout.contains("did not match any file(s) known to git.")
-            && get_missing_file(command, path_exists).is_some()
+        stdout.contains("did not match any file(s) known to git")
+            && get_missing_file(command, path_exists_mock).is_some()
     } else {
         false
     }
@@ -55,13 +51,13 @@ pub fn match_rule(command: &mut CrabCommand, system_shell: Option<&dyn Shell>) -
     match_rule_with_git_support(auxiliary_match_rule, command)
 }
 
+// This is the mockable version for unit tests
 fn mockable_get_new_command(
     command: &CrabCommand,
     system_shell: Option<&dyn Shell>,
-    path_exists: Option<bool>,
+    path_exists_mock: Option<bool>,
 ) -> Vec<String> {
-    let missing_file = get_missing_file(command, path_exists).unwrap_or_default();
-    // Use the shlex Quoter to handle spaces and special characters
+    let missing_file = get_missing_file(command, path_exists_mock).unwrap_or_default();
     let quoter = Quoter::new();
     let quoted_missing_file = quoter.quote(&missing_file).unwrap_or_default();
 
@@ -71,6 +67,7 @@ fn mockable_get_new_command(
         .and(vec![&str_git_add, &command.script])]
 }
 
+// This is the real version for the application
 fn auxiliary_get_new_command(
     command: &CrabCommand,
     system_shell: Option<&dyn Shell>,
@@ -86,7 +83,7 @@ pub fn get_rule() -> Rule {
     Rule::new(
         "git_add".to_owned(),
         None,
-        None,
+        Some(1100),
         None,
         Box::new(match_rule),
         get_new_command,
@@ -106,6 +103,7 @@ mod tests {
     #[case("git commit unknown", "unknown", true, true)]
     #[case("git submodule update known", "", true, false)]
     #[case("git commit known", "", true, false)]
+    #[case("git submodule update known", "unknown", false, false)]
     fn test_match_rule(
         #[case] script: &str,
         #[case] target: &str,
@@ -113,7 +111,7 @@ mod tests {
         #[case] expected: bool,
     ) {
         let stdout = if !target.is_empty() {
-            format!("error: pathspec '{target}' did not match any file(s) known to git.")
+            format!("error: pathspec '{target}' did not match any file(s) known to git")
         } else {
             "".to_string()
         };
@@ -132,21 +130,18 @@ mod tests {
         "unknown",
         "git add -- unknown && git commit unknown"
     )]
-    // This is the corrected test case:
     #[case(
         "git commit \"file with spaces.txt\"",
         "file with spaces.txt",
         "git add -- 'file with spaces.txt' && git commit \"file with spaces.txt\""
     )]
     fn test_get_new_command(#[case] script: &str, #[case] target: &str, #[case] expected: &str) {
-        let stdout = format!("error: pathspec '{target}' did not match any file(s) known to git.");
+        let stdout = format!("error: pathspec '{target}' did not match any file(s) known to git");
         let system_shell = Bash {};
-        let command = CrabCommand::new(script.to_owned(), Some(stdout), None);
-
-        // The assertion now correctly expects single quotes from shlex in the `git add`
-        // part and preserves the original double quotes in the `git commit` part.
+        let mut command = CrabCommand::new(script.to_owned(), Some(stdout), None);
+        // Unit test now calls the mockable function, simulating that the file exists.
         assert_eq!(
-            mockable_get_new_command(&command, Some(&system_shell), Some(true))[0],
+            mockable_get_new_command(&mut command, Some(&system_shell), Some(true))[0],
             expected
         );
     }

@@ -11,6 +11,12 @@ use crate::{
 static HOOKED_COMMANDS: &[&str] = &["am", "commit", "push"];
 
 fn auxiliary_match_rule(command: &CrabCommand) -> bool {
+    if let Some(output) = &command.output {
+        // Don't match if another rule should handle this
+        if output.contains("did not match any file(s) known to git") {
+            return false;
+        }
+    }
     HOOKED_COMMANDS
         .iter()
         .any(|&hooked_command| command.script_parts.contains(&hooked_command.to_owned()))
