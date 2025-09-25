@@ -6,6 +6,7 @@ use crate::cli::{command::CorrectedCommand, command::CrabCommand};
 mod ag_literal;
 mod apt_get;
 mod apt_get_search;
+mod apt_invalid_operation;
 mod apt_list_upgradable;
 mod apt_upgrade;
 mod aws_cli;
