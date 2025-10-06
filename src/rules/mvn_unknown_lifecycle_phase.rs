@@ -66,11 +66,11 @@ mod tests {
     use rstest::rstest;
 
     const ERROR_UNKNOWN_LIFECYCLE: &str = "[ERROR] Unknown lifecycle phase \"cle\". You must specify a valid lifecycle phase or a goal in the format <plugin-prefix>:<goal> or <plugin-group-id>:<plugin-artifact-id>[:<plugin-version>]:<goal>. Available lifecycle phases are: validate, initialize, generate-sources, process-sources, generate-resources, process-resources, compile, process-classes, generate-test-sources, process-test-sources, generate-test-resources, process-test-resources, test-compile, process-test-classes, test, prepare-package, package, pre-integration-test, integration-test, post-integration-test, verify, install, deploy, pre-clean, clean, post-clean, pre-site, site, post-site, site-deploy. -> [Help 1]";
-    const MVN_CLEAN: &str = "\n[INFO] Scanning for projects...[INFO]                                                                         
+    const MVN_CLEAN: &str = "\n[INFO] Scanning for projects...[INFO]
 [INFO] ------------------------------------------------------------------------
 [INFO] Building test 0.2
 [INFO] ------------------------------------------------------------------------
-[INFO] 
+[INFO]
 [INFO] --- maven-clean-plugin:2.5:clean (default-clean) @ test ---
 [INFO] Deleting /home/mlk/code/test/target
 [INFO] ------------------------------------------------------------------------

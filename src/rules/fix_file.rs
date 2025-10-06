@@ -50,7 +50,7 @@ struct FileMatch {
 }
 
 /// Searches the output for a file path and line number that exists on the filesystem.
-fn search<'a>(output: &'a str) -> Option<Captures<'a>> {
+fn search(output: &str) -> Option<Captures<'_>> {
     for regex in get_patterns() {
         if let Some(captures) = regex.captures(output) {
             if let Some(file_match) = captures.name("file") {
