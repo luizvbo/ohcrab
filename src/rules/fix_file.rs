@@ -6,29 +6,29 @@ use std::path::Path;
 
 const PATTERNS: &[&str] = &[
     // js, node:
-    r"^    at (?P<file>[^:\n]+):(?P<line>[0-9]+):(?P<col>[0-9]+)",
+    r#"(?m)^    at (?P<file>[^:\n]+):(?P<line>[0-9]+):(?P<col>[0-9]+)"#,
     // cargo:
-    r"^   (?P<file>[^:\n]+):(?P<line>[0-9]+):(?P<col>[0-9]+)",
+    r#"(?m)^   (?P<file>[^:\n]+):(?P<line>[0-9]+):(?P<col>[0-9]+)"#,
     // python, thefuck:
-    r#"^  File "(?P<file>[^"]+)", line (?P<line>[0-9]+)"#,
+    r#"(?m)^  File "(?P<file>[^:\n]+)", line (?P<line>[0-9]+)"#,
     // awk:
-    r"^awk: (?P<file>[^:\n]+):(?P<line>[0-9]+):",
+    r#"(?m)^awk: (?P<file>[^:\n]+):(?P<line>[0-9]+):"#,
     // git
-    r"^fatal: bad config file line (?P<line>[0-9]+) in (?P<file>[^:\n]+)",
-    // llc:
-    r"^llc: (?P<file>[^:\n]+):(?P<line>[0-9]+):(?P<col>[0-9]+):",
-    // lua:
-    r"^lua: (?P<file>[^:\n]+):(?P<line>[0-9]+):",
-    // fish:
-    r"^(?P<file>[^\n]+) \(line (?P<line>[0-9]+)\):",
+    r#"(?m)^fatal: bad config file line (?P<line>[0-9]+) in (?P<file>[^:\n]+)"#,
+    // llc
+    r#"(?m)^llc: (?P<file>[^:\n]+):(?P<line>[0-9]+):(?P<col>[0-9]+):"#,
+    // lua
+    r#"(?m)^lua: (?P<file>[^:\n]+):(?P<line>[0-9]+):"#,
+    // fish
+    r#"(?m)^(?P<file>[^:\n]+) \(line (?P<line>[0-9]+)\):"#,
     // bash, sh, ssh:
-    r"^(?P<file>[^:\n]+): line (?P<line>[0-9]+): ",
+    r#"(?m)^(?P<file>[^:\n]+): line (?P<line>[0-9]+): "#,
     // cargo, clang, gcc, go, pep8, rustc:
-    r"^(?P<file>[^:\n]+):(?P<line>[0-9]+):(?P<col>[0-9]+)",
+    r#"(?m)^(?P<file>[^:\n]+):(?P<line>[0-9]+):(?P<col>[0-9]+)"#,
     // ghc, make, ruby, zsh:
-    r"^(?P<file>[^:\n]+):(?P<line>[0-9]+):",
-    // perl:
-    r"at (?P<file>[^:\n]+) line (?P<line>[0-9]+)",
+    r#"(?m)^(?P<file>[^:\n]+):(?P<line>[0-9]+):"#,
+    // perl
+    r#"(?m)^at (?P<file>[^:\n]+) line (?P<line>[0-9]+)"#,
 ];
 
 #[derive(Debug, PartialEq)]
@@ -61,7 +61,6 @@ pub fn match_rule(command: &mut CrabCommand, _system_shell: Option<&dyn Shell>) 
     if env::var("EDITOR").is_err() {
         return false;
     }
-
     if let Some(output) = &command.output {
         search(output).is_some()
     } else {
@@ -74,7 +73,9 @@ pub fn get_new_command(command: &mut CrabCommand, system_shell: Option<&dyn Shel
         if let Some(file_match) = search(output) {
             if let Ok(editor) = env::var("EDITOR") {
                 let editor_call = format!("{} {} +{}", editor, file_match.file, file_match.line);
-                return vec![system_shell.unwrap().and(vec![&editor_call, &command.script])];
+                return vec![system_shell
+                    .unwrap()
+                    .and(vec![&editor_call, &command.script])];
             }
         }
     }
