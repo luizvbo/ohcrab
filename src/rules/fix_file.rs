@@ -1,8 +1,9 @@
 use super::Rule;
 use crate::{cli::command::CrabCommand, shell::Shell};
-use regex::Regex;
+use regex::{Captures, Regex};
 use std::env;
 use std::path::Path;
+use std::sync::OnceLock;
 
 const PATTERNS: &[&str] = &[
     // js, node:
@@ -31,6 +32,17 @@ const PATTERNS: &[&str] = &[
     r#"(?m)^at (?P<file>[^:\n]+) line (?P<line>[0-9]+)"#,
 ];
 
+static COMPILED_PATTERNS: OnceLock<Vec<Regex>> = OnceLock::new();
+
+fn get_patterns() -> &'static Vec<Regex> {
+    COMPILED_PATTERNS.get_or_init(|| {
+        PATTERNS
+            .iter()
+            .map(|pattern| Regex::new(pattern).unwrap())
+            .collect()
+    })
+}
+
 #[derive(Debug, PartialEq)]
 struct FileMatch {
     file: String,
@@ -38,18 +50,12 @@ struct FileMatch {
 }
 
 /// Searches the output for a file path and line number that exists on the filesystem.
-fn search(output: &str) -> Option<FileMatch> {
-    for pattern in PATTERNS {
-        if let Some(captures) = Regex::new(pattern).unwrap().captures(output) {
+fn search<'a>(output: &'a str) -> Option<Captures<'a>> {
+    for regex in get_patterns() {
+        if let Some(captures) = regex.captures(output) {
             if let Some(file_match) = captures.name("file") {
-                let file = file_match.as_str();
-                if Path::new(file).is_file() {
-                    if let Some(line_match) = captures.name("line") {
-                        return Some(FileMatch {
-                            file: file.to_string(),
-                            line: line_match.as_str().to_string(),
-                        });
-                    }
+                if Path::new(file_match.as_str()).is_file() {
+                    return Some(captures);
                 }
             }
         }
@@ -70,9 +76,13 @@ pub fn match_rule(command: &mut CrabCommand, _system_shell: Option<&dyn Shell>) 
 
 pub fn get_new_command(command: &mut CrabCommand, system_shell: Option<&dyn Shell>) -> Vec<String> {
     if let Some(output) = &command.output {
-        if let Some(file_match) = search(output) {
-            if let Ok(editor) = env::var("EDITOR") {
-                let editor_call = format!("{} {} +{}", editor, file_match.file, file_match.line);
+        if let Some(captures) = search(output) {
+            if let (Ok(editor), Some(file), Some(line)) = (
+                env::var("EDITOR"),
+                captures.name("file"),
+                captures.name("line"),
+            ) {
+                let editor_call = format!("{} {} +{}", editor, file.as_str(), line.as_str());
                 return vec![system_shell
                     .unwrap()
                     .and(vec![&editor_call, &command.script])];
@@ -101,107 +111,90 @@ mod tests {
     use crate::shell::Bash;
     use rstest::rstest;
     use std::env;
+    use std::fs;
     use tempfile::tempdir;
 
-    struct TestCase<'a> {
-        script: &'a str,
-        file: &'a str,
-        line: &'a str,
-        output: &'a str,
-    }
-
-    const TESTS: &[TestCase] = &[
-        TestCase {
-            script: "gcc a.c",
-            file: "a.c",
-            line: "3",
-            output: "a.c: In function 'main':\na.c:3:1: error: expected expression before '}' token\n }",
-        },
-        TestCase {
-            script: "python a.py",
-            file: "a.py",
-            line: "2",
-            output: "  File \"a.py\", line 2\n      +\n          ^\nSyntaxError: invalid syntax",
-        },
-        TestCase {
-            script: "cargo build",
-            file: "src/lib.rs",
-            line: "3",
-            output: "   Compiling test v0.1.0 (file:///tmp/fix-error/test)\n   src/lib.rs:3:5: 3:6 error: unexpected token: `+`\n   src/lib.rs:3     +\n                    ^\nCould not compile `test`.",
-        },
-        TestCase {
-            script: "node fuck.js",
-            file: "fuck.js",
-            line: "2",
-            output: "{file}:2\nconole.log(arg);\n^\nReferenceError: conole is not defined\n    at {file}:2:5",
-        },
-        TestCase {
-            script: "git st",
-            file: ".git/config",
-            line: "1",
-            output: "fatal: bad config file line 1 in {file}",
-        },
-        TestCase {
-            script: "bash a.sh",
-            file: "a.sh",
-            line: "2",
-            output: "{file}: line 2: foo: command not found",
-        },
-    ];
-
     #[rstest]
-    fn test_match_and_get_new_command() {
-        for test in TESTS {
-            let temp_dir = tempdir().unwrap();
-            let file_path = temp_dir.path().join(test.file);
-            if let Some(parent) = file_path.parent() {
-                std::fs::create_dir_all(parent).unwrap();
+    #[case(
+        "gcc a.c",
+        "a.c",
+        "3",
+        "a.c: In function 'main':\na.c:3:1: error: expected expression before '}' token\n }"
+    )]
+    #[case(
+        "python a.py",
+        "a.py",
+        "2",
+        "  File \"a.py\", line 2\n      +\n          ^\nSyntaxError: invalid syntax"
+    )]
+    #[case("cargo build", "src/lib.rs", "3", "   Compiling test v0.1.0 (file:///tmp/fix-error/test)\n   src/lib.rs:3:5: 3:6 error: unexpected token: `+`\n   src/lib.rs:3     +\n                    ^\nCould not compile `test`.")]
+    #[case(
+        "node fuck.js",
+        "fuck.js",
+        "2",
+        "{file}:2\nconole.log(arg);\n^\nReferenceError: console is not defined\n    at {file}:2:5"
+    )]
+    #[case(
+        "git st",
+        ".git/config",
+        "1",
+        "fatal: bad config file line 1 in {file}"
+    )]
+    #[case("bash a.sh", "a.sh", "2", "{file}: line 2: foo: command not found")]
+    fn test_match_and_get_new_command(
+        #[case] script: &str,
+        #[case] file: &str,
+        #[case] line: &str,
+        #[case] output: &str,
+    ) {
+        let temp_dir = tempdir().unwrap();
+        env::set_current_dir(temp_dir.path()).unwrap();
+
+        let file_path = temp_dir.path().join(file);
+        if let Some(parent) = file_path.parent() {
+            if !parent.is_dir() {
+                fs::create_dir_all(parent).unwrap();
             }
-            std::fs::File::create(&file_path).unwrap();
-
-            let modified_output = test.output.replace("{file}", file_path.to_str().unwrap());
-            let mut command =
-                CrabCommand::new(test.script.to_string(), Some(modified_output), None);
-
-            // Test match
-            env::set_var("EDITOR", "dummy_editor");
-            println!("{:?}", command);
-            println!("{:?}", match_rule(&mut command, None));
-            assert!(match_rule(&mut command, None));
-
-            // Test get_new_command
-            let system_shell = Bash {};
-            let expected_cmd = format!(
-                "dummy_editor {} +{} && {}",
-                file_path.to_str().unwrap(),
-                test.line,
-                test.script
-            );
-            assert_eq!(
-                get_new_command(&mut command, Some(&system_shell)),
-                vec![expected_cmd]
-            );
-
-            env::remove_var("EDITOR");
         }
+        fs::File::create(&file_path).unwrap();
+
+        let modified_output = output.replace("{file}", file);
+        let mut command = CrabCommand::new(script.to_string(), Some(modified_output), None);
+
+        // Test match
+        env::set_var("EDITOR", "dummy_editor");
+        assert!(
+            match_rule(&mut command, None),
+            "Match failed for script: '{script}'"
+        );
+
+        // Test get_new_command
+        let system_shell = Bash {};
+        let expected_cmd = format!("dummy_editor {file} +{line} && {script}");
+        assert_eq!(
+            get_new_command(&mut command, Some(&system_shell)),
+            vec![expected_cmd]
+        );
+
+        env::remove_var("EDITOR");
     }
 
     #[test]
     fn test_no_editor() {
-        let test = &TESTS[0];
+        let mut command = CrabCommand::new("gcc a.c".to_string(), Some("...".to_string()), None);
         env::remove_var("EDITOR");
-        let mut command =
-            CrabCommand::new(test.script.to_string(), Some(test.output.to_string()), None);
         assert!(!match_rule(&mut command, None));
     }
 
     #[test]
     fn test_not_file() {
-        let test = &TESTS[0];
+        let mut command = CrabCommand::new(
+            "gcc a.c".to_string(),
+            Some("a.c:3:1: error...".to_string()),
+            None,
+        );
         env::set_var("EDITOR", "dummy_editor");
         // Don't create the file, so Path::is_file() will be false
-        let mut command =
-            CrabCommand::new(test.script.to_string(), Some(test.output.to_string()), None);
         assert!(!match_rule(&mut command, None));
         env::remove_var("EDITOR");
     }
