@@ -126,6 +126,7 @@ new rules or improving the crate.
 | `docker_login`                         | Suggests running `docker login` before a command that fails due to an access-denied error.                          |
 | `dry`                                  | Removes a duplicated command at the beginning of the script (e.g., `git git status`).                               |
 | `fix_alt_space`                        | Fixes commands that use a non-breaking space (Alt+Space) instead of a regular space.                                |
+| `fix_file`                             | Opens the file that caused an error in your `$EDITOR` at the correct line, then re-runs the command.                |
 | `git_add`                              | Suggests running `git add` on a file that is not tracked by Git before committing or updating it.                   |
 | `git_add_force`                        | Adds `--force` to `git add` when trying to add a file that is ignored by `.gitignore`.                              |
 | `git_bisect_usage`                     | Corrects misspelled `git bisect` subcommands (e.g., `strt` to `start`).                                             |
@@ -229,7 +230,6 @@ new rules or improving the crate.
 - [ ] dnf_no_such_command
 - [ ] docker_not_command
 - [ ] fab_command_not_found
-- [ ] fix_file
 - [ ] gem_unknown_command
 - [ ] go_unknown_command
 - [ ] gradle_no_task
