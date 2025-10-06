@@ -53,7 +53,7 @@ find_install_dir() {
         echo "$HOME/bin"
         return
     fi
-    
+
     # Fallback to system-wide directory (might require sudo)
     if [ -d "/usr/local/bin" ] && [ -w "/usr/local/bin" ]; then
         echo "/usr/local/bin"
@@ -76,7 +76,7 @@ main() {
 
     # The asset name needs to match what the release workflow creates
     DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST_TAG/$BINARY_NAME-$TARGET"
-    
+
     # Create a temporary directory for the download
     TMP_DIR=$(mktemp -d)
     # Ensure the temporary directory is cleaned up on exit

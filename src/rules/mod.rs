@@ -36,6 +36,7 @@ mod docker_image_being_used_by_container;
 mod docker_login;
 mod dry;
 mod fix_alt_space;
+mod fix_file;
 mod git_add;
 mod git_add_force;
 mod git_bisect_usage;
